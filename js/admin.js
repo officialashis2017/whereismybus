@@ -1,3 +1,18 @@
+// Import Firebase services
+import { 
+    busData, 
+    routes, 
+    stops,
+    saveBusData,
+    deleteBusData, 
+    saveRouteData, 
+    deleteRouteData,
+    saveStopData,
+    deleteStopData
+} from './data.js';
+
+import { updateSearchOptions } from './search.js';
+
 // Admin functionality
 function adminLogin(event) {
     event.preventDefault();
@@ -84,7 +99,7 @@ function convertTo12Hour(time24) {
 }
 
 // Bus management
-function addBus(event) {
+async function addBus(event) {
     event.preventDefault();
     
     const busNumber = document.getElementById('busNumber').value;
@@ -149,12 +164,7 @@ function addBus(event) {
         allStops = [origin, ...allStops, destination];
     }
     
-    // Generate a unique ID as a string
-    const newId = String(Date.now());
-    console.log("Generated new bus ID:", newId, "type:", typeof newId);
-    
     const newBus = {
-        id: newId,
         number: busNumber,
         name: `${routeInfo.origin} Express`,
         type: 'Standard',
@@ -170,26 +180,36 @@ function addBus(event) {
     
     console.log("Created new bus:", newBus);
     
-    busData.push(newBus);
-    loadBusTable();
-    
-    // Update search options with the new bus data
-    updateSearchOptions();
-    
-    // Save data to localStorage
-    saveData();
-    
-    // Reset form
-    document.getElementById('busNumber').value = '';
-    document.getElementById('busRoute').value = '';
-    document.getElementById('departureHour').value = '';
-    document.getElementById('departureMinute').value = '';
-    document.getElementById('departureAmPm').value = 'AM';
-    document.getElementById('arrivalHour').value = '';
-    document.getElementById('arrivalMinute').value = '';
-    document.getElementById('arrivalAmPm').value = 'AM';
-    
-    alert('Bus added successfully!');
+    try {
+        // Save to Firebase
+        const success = await saveBusData(newBus);
+        
+        if (success) {
+            // Add to local array (will be updated by Firebase listener)
+            busData.push(newBus);
+            loadBusTable();
+            
+            // Update search options with the new bus data
+            updateSearchOptions();
+            
+            // Reset form
+            document.getElementById('busNumber').value = '';
+            document.getElementById('busRoute').value = '';
+            document.getElementById('departureHour').value = '';
+            document.getElementById('departureMinute').value = '';
+            document.getElementById('departureAmPm').value = 'AM';
+            document.getElementById('arrivalHour').value = '';
+            document.getElementById('arrivalMinute').value = '';
+            document.getElementById('arrivalAmPm').value = 'AM';
+            
+            alert('Bus added successfully!');
+        } else {
+            alert('Failed to add bus. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error adding bus:", error);
+        alert('An error occurred while adding the bus.');
+    }
 }
 
 function loadBusTable() {
@@ -220,37 +240,64 @@ function loadBusTable() {
     `).join('');
 }
 
-function toggleBusStatus(busId) {
+async function toggleBusStatus(busId) {
     const bus = busData.find(b => String(b.id) === String(busId));
     if (bus) {
-        bus.status = bus.status === 'running' ? 'stopped' : 'running';
-        loadBusTable();
-        // Save data to localStorage
-        saveData();
+        const newStatus = bus.status === 'running' ? 'stopped' : 'running';
+        
+        try {
+            // Update status in Firebase
+            bus.status = newStatus;
+            const success = await saveBusData(bus);
+            
+            if (success) {
+                loadBusTable();
+            } else {
+                alert('Failed to update bus status. Please try again.');
+                // Revert the status change
+                bus.status = bus.status === 'running' ? 'stopped' : 'running';
+            }
+        } catch (error) {
+            console.error(`Error updating bus status for ID ${busId}:`, error);
+            alert('An error occurred while updating the bus status.');
+            // Revert the status change
+            bus.status = bus.status === 'running' ? 'stopped' : 'running';
+        }
     } else {
         console.error(`Bus with ID ${busId} not found when toggling status`);
     }
 }
 
-function deleteBus(busId) {
+async function deleteBus(busId) {
     if (confirm('Are you sure you want to delete this bus?')) {
-        const initialCount = busData.length;
-        busData = busData.filter(b => String(b.id) !== String(busId));
-        
-        if (busData.length === initialCount) {
-            console.error(`Bus with ID ${busId} not found when deleting`);
+        try {
+            // Delete from Firebase
+            const success = await deleteBusData(busId);
+            
+            if (success) {
+                // Remove from local array
+                const initialCount = busData.length;
+                busData = busData.filter(b => String(b.id) !== String(busId));
+                
+                if (busData.length === initialCount) {
+                    console.error(`Bus with ID ${busId} not found when deleting`);
+                }
+                
+                loadBusTable();
+                // Update search options after bus deletion
+                updateSearchOptions();
+            } else {
+                alert('Failed to delete bus. Please try again.');
+            }
+        } catch (error) {
+            console.error(`Error deleting bus with ID ${busId}:`, error);
+            alert('An error occurred while deleting the bus.');
         }
-        
-        loadBusTable();
-        // Update search options after bus deletion
-        updateSearchOptions();
-        // Save data to localStorage
-        saveData();
     }
 }
 
 // Route management
-function addRoute(event) {
+async function addRoute(event) {
     event.preventDefault();
     
     const routeName = document.getElementById('routeName').value;
@@ -259,26 +306,36 @@ function addRoute(event) {
     const routeDistance = parseInt(document.getElementById('routeDistance').value);
     
     const newRoute = {
-        id: routes.length + 1,
         name: routeName.toLowerCase().replace(/\s+/g, '-'),
         origin: routeOrigin,
         destination: routeDestination,
         distance: routeDistance
     };
     
-    routes.push(newRoute);
-    loadRouteTable();
-    updateRouteSelects();
-    // Save data to localStorage
-    saveData();
-    
-    // Reset form
-    document.getElementById('routeName').value = '';
-    document.getElementById('routeOrigin').value = '';
-    document.getElementById('routeDestination').value = '';
-    document.getElementById('routeDistance').value = '';
-    
-    alert('Route added successfully!');
+    try {
+        // Save to Firebase
+        const success = await saveRouteData(newRoute);
+        
+        if (success) {
+            // Add to local array
+            routes.push(newRoute);
+            loadRouteTable();
+            updateRouteSelects();
+            
+            // Reset form
+            document.getElementById('routeName').value = '';
+            document.getElementById('routeOrigin').value = '';
+            document.getElementById('routeDestination').value = '';
+            document.getElementById('routeDistance').value = '';
+            
+            alert('Route added successfully!');
+        } else {
+            alert('Failed to add route. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error adding route:", error);
+        alert('An error occurred while adding the route.');
+    }
 }
 
 function loadRouteTable() {
@@ -298,13 +355,26 @@ function loadRouteTable() {
     `).join('');
 }
 
-function deleteRoute(routeId) {
+async function deleteRoute(routeId) {
     if (confirm('Are you sure you want to delete this route?')) {
-        routes = routes.filter(r => r.id !== routeId);
-        loadRouteTable();
-        updateRouteSelects();
-        // Save data to localStorage
-        saveData();
+        try {
+            // Delete from Firebase
+            const success = await deleteRouteData(routeId);
+            
+            if (success) {
+                // Remove from local array
+                routes = routes.filter(r => String(r.id) !== String(routeId));
+                loadRouteTable();
+                updateRouteSelects();
+                
+                alert('Route deleted successfully!');
+            } else {
+                alert('Failed to delete route. Please try again.');
+            }
+        } catch (error) {
+            console.error(`Error deleting route with ID ${routeId}:`, error);
+            alert('An error occurred while deleting the route.');
+        }
     }
 }
 
@@ -320,68 +390,59 @@ function updateRouteSelects() {
 }
 
 // Stop management
-function addStop(event) {
+async function addStop(event) {
     event.preventDefault();
     
-    const stopName = document.getElementById('stopName').value;
     const stopRoute = document.getElementById('stopRoute').value;
+    const stopName = document.getElementById('stopName').value;
     
-    // Get time values from the new input fields
+    // Time inputs
     const arrivalHour = document.getElementById('stopArrivalHour').value;
     const arrivalMinute = document.getElementById('stopArrivalMinute').value;
     const arrivalAmPm = document.getElementById('stopArrivalAmPm').value;
     
-    const departureHour = document.getElementById('stopDepartureHour').value;
-    const departureMinute = document.getElementById('stopDepartureMinute').value;
-    const departureAmPm = document.getElementById('stopDepartureAmPm').value;
-    
-    // Convert to 24-hour format for storage
-    const arrivalTime = convertTo24Hour(arrivalHour, arrivalMinute, arrivalAmPm);
-    const departureTime = convertTo24Hour(departureHour, departureMinute, departureAmPm);
-    
-    // Check if stop already exists for this route
-    const existingStop = stops.find(s => s.name === stopName && s.route === stopRoute);
-    if (existingStop) {
-        alert('This stop already exists for this route!');
+    // Validate inputs
+    if (!stopRoute || !stopName || !arrivalHour || !arrivalMinute) {
+        alert('Please fill all fields');
         return;
     }
     
-    // Add stop to stops array
+    // Convert times to 24-hour format
+    const arrivalTime = convertTo24Hour(arrivalHour, arrivalMinute, arrivalAmPm);
+    
     const newStop = {
-        id: stops.length + 1,
-        name: stopName,
         route: stopRoute,
-        arrival: arrivalTime,
-        departure: departureTime,
-        time: arrivalTime // Add the time field for compatibility with the new structure
+        name: stopName,
+        arrival: arrivalTime
     };
     
-    stops.push(newStop);
-    loadStopTable();
-    
-    // Update bus stops for this route
-    updateBusStopsForRoute(stopRoute, {
-        name: stopName,
-        time: arrivalTime // Use arrival time as the single time value
-    });
-    
-    // Update search options with the new stop
-    updateSearchOptions();
-    
-    // Save data to localStorage
-    saveData();
-    
-    // Reset form
-    document.getElementById('stopName').value = '';
-    document.getElementById('stopRoute').value = '';
-    document.getElementById('stopArrivalHour').value = '';
-    document.getElementById('stopArrivalMinute').value = '';
-    document.getElementById('stopArrivalAmPm').value = 'AM';
-    document.getElementById('stopDepartureHour').value = '';
-    document.getElementById('stopDepartureMinute').value = '';
-    document.getElementById('stopDepartureAmPm').value = 'AM';
-    
-    alert('Stop added successfully!');
+    try {
+        // Save to Firebase
+        const success = await saveStopData(newStop);
+        
+        if (success) {
+            // Add to local array
+            stops.push(newStop);
+            loadStopTable();
+            
+            // Add this stop to buses with this route
+            // This is now handled by Firebase listeners
+            
+            // Reset form
+            document.getElementById('stopRoute').value = '';
+            document.getElementById('stopName').value = '';
+            document.getElementById('stopArrivalHour').value = '';
+            document.getElementById('stopArrivalMinute').value = '';
+            document.getElementById('stopArrivalAmPm').value = 'AM';
+            
+            alert('Stop added successfully!');
+        } else {
+            alert('Failed to add stop. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error adding stop:", error);
+        alert('An error occurred while adding the stop.');
+    }
 }
 
 function loadStopTable() {
@@ -401,28 +462,44 @@ function loadStopTable() {
     `).join('');
 }
 
-function deleteStop(stopId) {
+async function deleteStop(stopId) {
     if (confirm('Are you sure you want to delete this stop?')) {
-        // Get the stop before deleting it
-        const stopToDelete = stops.find(s => s.id === stopId);
-        
-        if (stopToDelete) {
-            // Remove stop from all buses that have it
-            busData.forEach(bus => {
-                if (bus.route.toLowerCase().replace(/\s+/g, '-') === stopToDelete.route) {
-                    bus.stops = bus.stops.filter(s => s.name !== stopToDelete.name);
-                }
-            });
+        try {
+            // Delete from Firebase
+            const success = await deleteStopData(stopId);
             
-            // Delete the stop from the stops array
-            stops = stops.filter(s => s.id !== stopId);
-            loadStopTable();
-            
-            // Update stoppage options
-            updateStoppageOptions();
-            
-            // Save data to localStorage
-            saveData();
+            if (success) {
+                // Remove from local array
+                stops = stops.filter(s => String(s.id) !== String(stopId));
+                loadStopTable();
+                
+                alert('Stop deleted successfully!');
+            } else {
+                alert('Failed to delete stop. Please try again.');
+            }
+        } catch (error) {
+            console.error(`Error deleting stop with ID ${stopId}:`, error);
+            alert('An error occurred while deleting the stop.');
         }
     }
-} 
+}
+
+// Export functions for use in other modules
+export {
+    adminLogin,
+    adminLogout,
+    loadAdminData,
+    convertTo24Hour,
+    convertTo12Hour,
+    addBus,
+    loadBusTable,
+    toggleBusStatus,
+    deleteBus,
+    addRoute,
+    loadRouteTable,
+    deleteRoute,
+    updateRouteSelects,
+    addStop,
+    loadStopTable,
+    deleteStop
+}; 

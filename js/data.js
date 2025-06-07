@@ -1,4 +1,7 @@
-// Sample data - default values
+// Import Firebase services
+import { busService, routeService, stopService } from './firebase-service.js';
+
+// Sample data - default values (will be used if no data in Firebase)
 const defaultBusData = [
     {
         id: "1",
@@ -46,8 +49,8 @@ const defaultBusData = [
 ];
 
 const defaultRoutes = [
-    { id: 1, name: 'kolkata-delhi', origin: 'Kolkata', destination: 'Delhi', distance: 1500 },
-    { id: 2, name: 'mumbai-bangalore', origin: 'Mumbai', destination: 'Bangalore', distance: 980 }
+    { id: "1", name: 'kolkata-delhi', origin: 'Kolkata', destination: 'Delhi', distance: 1500 },
+    { id: "2", name: 'mumbai-bangalore', origin: 'Mumbai', destination: 'Bangalore', distance: 980 }
 ];
 
 const defaultStops = [];
@@ -55,16 +58,185 @@ const defaultStops = [];
 // Global variable to store all stoppages for filtering
 let allStoppagesGlobal = [];
 
-// Load data from localStorage or use defaults
-let busData = JSON.parse(localStorage.getItem('busData')) || defaultBusData;
-let routes = JSON.parse(localStorage.getItem('routes')) || defaultRoutes;
-let stops = JSON.parse(localStorage.getItem('stops')) || defaultStops;
+// Data variables - will be populated from Firebase
+let busData = [];
+let routes = [];
+let stops = [];
 
-// Function to save data to localStorage
-function saveData() {
-    localStorage.setItem('busData', JSON.stringify(busData));
-    localStorage.setItem('routes', JSON.stringify(routes));
-    localStorage.setItem('stops', JSON.stringify(stops));
+// Flag to track if data is loaded
+let dataLoaded = false;
+
+// Function to load all data from Firebase
+async function loadAllData() {
+    try {
+        console.log("Loading data from Firebase...");
+        
+        // Load buses
+        busData = await busService.getAllBuses();
+        if (busData.length === 0) {
+            console.log("No buses found in Firebase, using default data");
+            
+            // Add default buses to Firebase
+            for (const bus of defaultBusData) {
+                const busId = await busService.addBus(bus);
+                console.log(`Added default bus with ID: ${busId}`);
+            }
+            
+            // Reload buses
+            busData = await busService.getAllBuses();
+        }
+        
+        // Load routes
+        routes = await routeService.getAllRoutes();
+        if (routes.length === 0) {
+            console.log("No routes found in Firebase, using default data");
+            
+            // Add default routes to Firebase
+            for (const route of defaultRoutes) {
+                const routeId = await routeService.addRoute(route);
+                console.log(`Added default route with ID: ${routeId}`);
+            }
+            
+            // Reload routes
+            routes = await routeService.getAllRoutes();
+        }
+        
+        // Load stops
+        stops = await stopService.getAllStops();
+        
+        // Update the loaded flag
+        dataLoaded = true;
+        
+        // Update UI with loaded data
+        updateUI();
+        
+        console.log("Data loaded from Firebase");
+    } catch (error) {
+        console.error("Error loading data from Firebase:", error);
+        
+        // Fallback to local default data
+        busData = [...defaultBusData];
+        routes = [...defaultRoutes];
+        stops = [...defaultStops];
+        
+        // Update UI with fallback data
+        updateUI();
+    }
+}
+
+// Function to update the UI after data is loaded
+function updateUI() {
+    // Update search options
+    if (typeof updateSearchOptions === 'function') {
+        updateSearchOptions();
+    }
+    
+    // Update bus table if on admin page
+    if (typeof loadBusTable === 'function') {
+        loadBusTable();
+    }
+    
+    // Update route table if on admin page
+    if (typeof loadRouteTable === 'function') {
+        loadRouteTable();
+    }
+    
+    // Update stop table if on admin page
+    if (typeof loadStopTable === 'function') {
+        loadStopTable();
+    }
+    
+    // Update stats if on main page
+    if (typeof updateStats === 'function') {
+        updateStats();
+    }
+}
+
+// Function to save bus data to Firebase
+async function saveBusData(bus) {
+    try {
+        if (bus.id) {
+            // Update existing bus
+            await busService.updateBus(bus.id, bus);
+        } else {
+            // Add new bus
+            const busId = await busService.addBus(bus);
+            bus.id = busId;
+        }
+        return true;
+    } catch (error) {
+        console.error("Error saving bus data:", error);
+        return false;
+    }
+}
+
+// Function to delete bus from Firebase
+async function deleteBusData(busId) {
+    try {
+        await busService.deleteBus(busId);
+        return true;
+    } catch (error) {
+        console.error("Error deleting bus:", error);
+        return false;
+    }
+}
+
+// Function to save route data to Firebase
+async function saveRouteData(route) {
+    try {
+        if (route.id) {
+            // Update existing route (not implemented in service yet)
+            console.warn("Route update not implemented");
+        } else {
+            // Add new route
+            const routeId = await routeService.addRoute(route);
+            route.id = routeId;
+        }
+        return true;
+    } catch (error) {
+        console.error("Error saving route data:", error);
+        return false;
+    }
+}
+
+// Function to delete route from Firebase
+async function deleteRouteData(routeId) {
+    try {
+        await routeService.deleteRoute(routeId);
+        return true;
+    } catch (error) {
+        console.error("Error deleting route:", error);
+        return false;
+    }
+}
+
+// Function to save stop data to Firebase
+async function saveStopData(stop) {
+    try {
+        if (stop.id) {
+            // Update existing stop (not implemented in service yet)
+            console.warn("Stop update not implemented");
+        } else {
+            // Add new stop
+            const stopId = await stopService.addStop(stop);
+            stop.id = stopId;
+        }
+        return true;
+    } catch (error) {
+        console.error("Error saving stop data:", error);
+        return false;
+    }
+}
+
+// Function to delete stop from Firebase
+async function deleteStopData(stopId) {
+    try {
+        await stopService.deleteStop(stopId);
+        return true;
+    } catch (error) {
+        console.error("Error deleting stop:", error);
+        return false;
+    }
 }
 
 // Function to convert time string to minutes since midnight
@@ -82,15 +254,17 @@ function getCurrentTimeInMinutes() {
 }
 
 // Function to update current stop based on current time
-function updateCurrentStopsBasedOnTime() {
+async function updateCurrentStopsBasedOnTime() {
     const currentTimeMinutes = getCurrentTimeInMinutes();
+    let busesUpdated = false;
     
-    busData.forEach(bus => {
-        if (bus.status !== 'running') return;
+    for (const bus of busData) {
+        if (bus.status !== 'running') continue;
         
         if (!bus.stops || bus.stops.length < 2) {
             bus.currentStop = bus.stops?.[0]?.name || '';
-            return;
+            busesUpdated = true;
+            continue;
         }
         
         // Get the time of the first stop and last stop
@@ -108,8 +282,11 @@ function updateCurrentStopsBasedOnTime() {
         if (!hasStarted) {
             // Bus hasn't started yet or has completed its journey
             // Set current stop to the origin
-            bus.currentStop = bus.stops[0].name;
-            return;
+            if (bus.currentStop !== bus.stops[0].name) {
+                bus.currentStop = bus.stops[0].name;
+                busesUpdated = true;
+            }
+            continue;
         }
         
         // Find the current stop based on time
@@ -150,137 +327,49 @@ function updateCurrentStopsBasedOnTime() {
         }
         
         // Update the current stop
-        bus.currentStop = bus.stops[currentStopIndex].name;
-    });
+        const newCurrentStop = bus.stops[currentStopIndex].name;
+        if (bus.currentStop !== newCurrentStop) {
+            bus.currentStop = newCurrentStop;
+            busesUpdated = true;
+        }
+    }
     
-    // Save the updated data
-    saveData();
-}
-
-// Function to update bus stops based on route
-function updateBusStopsForRoute(routeName, newStop) {
-    // Find all buses on this route
-    busData.forEach(bus => {
-        if (bus.route.toLowerCase().replace(/\s+/g, '-') === routeName) {
-            // Check if the stop already exists
-            const existingStop = bus.stops.find(s => s.name === newStop.name);
-            if (!existingStop) {
-                // Sort stops by time
-                const allStops = [...bus.stops];
-                
-                // Remove origin and destination which will be added back
-                const origin = allStops.shift();
-                const destination = allStops.pop();
-                
-                // Add the new stop
-                allStops.push({
-                    name: newStop.name,
-                    time: newStop.time
-                });
-                
-                // Sort by time (excluding origin and destination)
-                allStops.sort((a, b) => {
-                    // Convert time strings to minutes for comparison
-                    const timeToMinutes = (timeStr) => {
-                        const [hours, minutes] = timeStr.split(':').map(Number);
-                        return hours * 60 + minutes;
-                    };
-                    return timeToMinutes(a.time) - timeToMinutes(b.time);
-                });
-                
-                // Reconstruct stops array with origin and destination
-                bus.stops = [origin, ...allStops, destination];
+    // Save the updated data if any buses were updated
+    if (busesUpdated) {
+        for (const bus of busData) {
+            if (bus.status === 'running') {
+                await busService.updateBus(bus.id, bus);
             }
         }
-    });
-}
-
-// Example data structure for a bus with arrival and departure times
-const busExample = {
-    id: 1,
-    number: "WB57A-1234",
-    route: "Delhi - Kolkata",
-    type: "Express",
-    status: "running",
-    currentStop: "Agra",
-    stops: [
-        {
-            name: "Delhi (ISBT)",
-            arrival: "08:00",
-            departure: "08:30",
-            time: "08:00"  // For backward compatibility
-        },
-        {
-            name: "Agra",
-            arrival: "11:30",
-            departure: "12:00",
-            time: "11:30"
-        },
-        {
-            name: "Kanpur",
-            arrival: "15:00",
-            departure: "15:30",
-            time: "15:00"
-        },
-        {
-            name: "Allahabad",
-            arrival: "18:00",
-            departure: "18:30",
-            time: "18:00"
-        },
-        {
-            name: "Patna",
-            arrival: "23:00",
-            departure: "23:30",
-            time: "23:00"
-        },
-        {
-            name: "Kolkata (ISBT)",
-            arrival: "06:00",
-            departure: null,  // No departure for final stop
-            time: "06:00"
-        }
-    ]
-};
-
-// Helper function to ensure all buses have proper arrival/departure times
-function ensureArrivalDepartureTimes() {
-    busData.forEach(bus => {
-        if (bus.stops && Array.isArray(bus.stops)) {
-            bus.stops.forEach((stop, index) => {
-                // If stop has only time field but no arrival/departure
-                if (stop.time && (!stop.arrival || !stop.departure)) {
-                    // Set arrival = time for all stops
-                    stop.arrival = stop.time;
-                    
-                    // Set departure for all except the last stop
-                    if (index < bus.stops.length - 1) {
-                        // Default departure is 20 minutes after arrival
-                        const arrivalMinutes = timeToMinutes(stop.time);
-                        const departureMinutes = arrivalMinutes + 20;
-                        stop.departure = minutesToTime(departureMinutes);
-                    } else {
-                        // Last stop has no departure
-                        stop.departure = null;
-                    }
-                }
-            });
-        }
-    });
-}
-
-// Convert minutes since midnight to time string
-function minutesToTime(minutes) {
-    const hours = Math.floor(minutes / 60) % 24;
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
-
-// Call this function after loading data
-document.addEventListener('DOMContentLoaded', function() {
-    // This will be called only if this script is included
-    if (typeof busData !== 'undefined') {
-        ensureArrivalDepartureTimes();
-        console.log("Enhanced bus data with arrival/departure times");
     }
-}); 
+}
+
+// Set up Firebase real-time updates
+function setupRealtimeUpdates() {
+    const unsubscribe = busService.onBusesUpdate(updatedBuses => {
+        console.log("Received real-time update for buses:", updatedBuses.length);
+        busData = updatedBuses;
+        updateUI();
+    });
+    
+    // Return unsubscribe function for cleanup
+    return unsubscribe;
+}
+
+// Export functions and data
+export {
+    loadAllData,
+    setupRealtimeUpdates,
+    updateCurrentStopsBasedOnTime,
+    saveBusData,
+    deleteBusData,
+    saveRouteData,
+    deleteRouteData,
+    saveStopData,
+    deleteStopData,
+    timeToMinutes,
+    busData,
+    routes,
+    stops,
+    allStoppagesGlobal
+}; 

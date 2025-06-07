@@ -1,3 +1,6 @@
+// Import data from data.js
+import { busData, allStoppagesGlobal, updateCurrentStopsBasedOnTime } from './data.js';
+
 // Function to filter dropdown suggestions based on user input
 function filterSuggestions(inputId, datalistId, allOptions) {
     const input = document.getElementById(inputId);
@@ -389,4 +392,17 @@ function handleStoppageInput() {
     } else {
         stoppageDropdown.classList.remove('show');
     }
-} 
+}
+
+// Export functions for use in other modules
+export {
+    filterSuggestions,
+    updateSearchOptions,
+    initializeStoppageDropdown,
+    updateStoppageDropdown,
+    populateDatalist,
+    setupInputFiltering,
+    searchBuses,
+    searchByStoppage,
+    handleStoppageInput
+}; 

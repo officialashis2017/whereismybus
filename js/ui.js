@@ -1,3 +1,6 @@
+// Import data from data.js
+import { busData, timeToMinutes } from './data.js';
+
 // Navigation
 function showPage(pageId, linkElement) {
     // Hide all pages
@@ -651,4 +654,24 @@ function viewBusDetails(busId) {
         console.error("Error displaying bus details:", error);
         alert("An error occurred while displaying bus details. Please try again.");
     }
-} 
+}
+
+// Export functions for use in other modules
+export {
+    showPage,
+    showAdminTab,
+    toggleMobileMenu,
+    formatTime,
+    updateCurrentTimeDisplay,
+    displayBuses,
+    showSchedule,
+    closeModal,
+    closeScheduleModal,
+    showAdminLogin,
+    updateStats,
+    animateCounter,
+    populatePopularRoutes,
+    sortBusResults,
+    calculateDuration,
+    viewBusDetails
+}; 

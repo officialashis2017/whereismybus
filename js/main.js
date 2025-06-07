@@ -1,35 +1,43 @@
 // Main.js - Entry point for the application
+import { loadAllData, setupRealtimeUpdates, updateCurrentStopsBasedOnTime, busData } from './data.js';
 
 // Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Load data from localStorage or initialize with default data
-    loadData();
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log("Initializing application...");
     
-    // Log bus data for debugging
-    console.log("Bus data loaded:", busData);
-    console.log("Bus data types:", busData.map(bus => ({
-        id: bus.id,
-        idType: typeof bus.id,
-        name: bus.name,
-        stops: bus.stops ? bus.stops.length : 0
-    })));
-    
-    // Initialize the UI components
-    initUI();
-    
-    // Update the current stop for each bus based on current time
-    updateCurrentStopsBasedOnTime();
-    
-    // Set up event listeners
-    setupEventListeners();
-    
-    // Initialize dynamic UI elements
-    initDynamicUI();
-    
-    // Update search options
-    updateSearchOptions();
-    
-    console.log("Application initialized with", busData.length, "buses");
+    try {
+        // Load data from Firebase
+        await loadAllData();
+        
+        // Set up real-time updates
+        const unsubscribe = setupRealtimeUpdates();
+        
+        // Log bus data for debugging
+        console.log("Bus data loaded:", busData);
+        console.log("Bus data types:", busData.map(bus => ({
+            id: bus.id,
+            idType: typeof bus.id,
+            name: bus.name,
+            stops: bus.stops ? bus.stops.length : 0
+        })));
+        
+        // Initialize the UI components
+        initUI();
+        
+        // Update the current stop for each bus based on current time
+        await updateCurrentStopsBasedOnTime();
+        
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Initialize dynamic UI elements
+        initDynamicUI();
+        
+        console.log("Application initialized with", busData.length, "buses");
+    } catch (error) {
+        console.error("Error initializing application:", error);
+        alert("An error occurred while loading the application. Please try again later.");
+    }
 });
 
 // Initialize dynamic UI elements
@@ -316,48 +324,6 @@ setInterval(() => {
     }
 }, 30000); // Update every 30 seconds
 
-// Load data from localStorage
-function loadData() {
-    const savedBusData = localStorage.getItem('busData');
-    const savedRoutes = localStorage.getItem('routes');
-    const savedStops = localStorage.getItem('stops');
-    
-    if (savedBusData) {
-        busData = JSON.parse(savedBusData);
-        console.log("Loaded bus data from localStorage:", busData.length, "buses");
-        
-        // Ensure all bus IDs are strings
-        busData.forEach(bus => {
-            if (typeof bus.id !== 'string') {
-                console.log(`Converting bus ID ${bus.id} from ${typeof bus.id} to string`);
-                bus.id = String(bus.id);
-            }
-        });
-    }
-    
-    if (savedRoutes) {
-        routes = JSON.parse(savedRoutes);
-        console.log("Loaded routes from localStorage:", routes.length, "routes");
-    }
-    
-    if (savedStops) {
-        stops = JSON.parse(savedStops);
-        console.log("Loaded stops from localStorage:", stops.length, "stops");
-    }
-}
-
-// Save data to localStorage
-function saveData() {
-    // Ensure all bus IDs are strings before saving
-    busData.forEach(bus => {
-        if (typeof bus.id !== 'string') {
-            console.log(`Converting bus ID ${bus.id} from ${typeof bus.id} to string before saving`);
-            bus.id = String(bus.id);
-        }
-    });
-    
-    localStorage.setItem('busData', JSON.stringify(busData));
-    localStorage.setItem('routes', JSON.stringify(routes));
-    localStorage.setItem('stops', JSON.stringify(stops));
-    console.log("Saved data to localStorage");
-} 
+// Remove the old load/save functions as they are now in data.js
+// function loadData() {...}
+// function saveData() {...} 

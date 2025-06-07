@@ -1,0 +1,37 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Firebase config with secrets
+# Uncomment if you store actual Firebase credentials in these files
+# js/firebase-config.js 
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw? 
