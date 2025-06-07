@@ -6,6 +6,14 @@
     <title>Where Is My Bus - India</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    
+    <!-- Direct Firebase initializer (non-module) -->
+    <script src="firebase-direct.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -575,7 +583,37 @@
             if (username.includes('@')) {
                 console.log("Attempting Firebase login with email:", username);
                 
-                // Try to use Firebase auth if available
+                // Try direct Firebase compat API (preferred)
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    console.log("Using Firebase compat API for authentication");
+                    
+                    firebase.auth().signInWithEmailAndPassword(username, password)
+                        .then(function(userCredential) {
+                            console.log("Firebase login successful", userCredential.user);
+                            // Show success message
+                            const statusElement = document.getElementById('loginStatus');
+                            statusElement.textContent = "Login successful!";
+                            statusElement.className = "login-status success";
+                            
+                            // Complete login process
+                            completeLoginProcess();
+                        })
+                        .catch(function(error) {
+                            console.error("Firebase login error:", error.code, error.message);
+                            
+                            // Show error message
+                            const statusElement = document.getElementById('loginStatus');
+                            statusElement.textContent = "Login failed: " + error.message;
+                            statusElement.className = "login-status error";
+                            
+                            // Reset button
+                            document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                            document.getElementById('loginButton').disabled = false;
+                        });
+                    return;
+                }
+                
+                // Try to use Firebase auth if available (fallback)
                 try {
                     // Access Firebase auth directly
                     const auth = window.firebaseAuth;
@@ -592,15 +630,6 @@
                     
                     if (!signInWithEmailAndPassword) {
                         console.error("Firebase signInWithEmailAndPassword function not available");
-                        
-                        // Try to get it from the global scope if defined there
-                        if (window.firebase && window.firebase.auth && typeof window.firebase.auth().signInWithEmailAndPassword === 'function') {
-                            window.firebase.auth().signInWithEmailAndPassword(username, password)
-                                .then(handleFirebaseLoginSuccess)
-                                .catch(handleFirebaseLoginError);
-                            return;
-                        }
-                        
                         fallbackToLocalAuth();
                         return;
                     }
@@ -767,7 +796,24 @@
         function logoutDirectly() {
             console.log("Direct logout function called");
             
-            // Try to sign out from Firebase if available
+            // Try to sign out from Firebase using the compat API (preferred)
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                console.log("Using Firebase compat API for logout");
+                
+                firebase.auth().signOut()
+                    .then(function() {
+                        console.log("Firebase sign out successful");
+                        completeLogout();
+                    })
+                    .catch(function(error) {
+                        console.error("Firebase sign out error:", error);
+                        // Still try to log out locally even if Firebase fails
+                        completeLogout();
+                    });
+                return;
+            }
+            
+            // Fallback to other methods if compat API is not available
             try {
                 const auth = window.firebaseAuth;
                 const { signOut } = window.firebaseAuthFunctions || { signOut: null };
@@ -788,21 +834,8 @@
                                 completeLogout();
                             });
                     } else {
-                        // Try legacy Firebase method
-                        if (window.firebase && window.firebase.auth && typeof window.firebase.auth().signOut === 'function') {
-                            window.firebase.auth().signOut()
-                                .then(() => {
-                                    console.log("Legacy Firebase sign out successful");
-                                    completeLogout();
-                                })
-                                .catch((error) => {
-                                    console.error("Legacy Firebase sign out error:", error);
-                                    completeLogout();
-                                });
-                        } else {
-                            console.warn("Firebase signOut function not available, proceeding with local logout");
-                            completeLogout();
-                        }
+                        console.warn("Firebase signOut function not available, proceeding with local logout");
+                        completeLogout();
                     }
                 } else {
                     // No Firebase user, just do a local logout
