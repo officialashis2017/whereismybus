@@ -36,7 +36,7 @@
                 Where Is My Bus - Admin
             </div>
             <div class="back-to-home">
-                <a href="#" onclick="showPage('home', document.querySelector('.nav-link')); return false;">
+                <a href="#" onclick="showPageDirectly('home', document.querySelector('.nav-link')); return false;">
                     <i class="fas fa-arrow-left"></i> Back to Home
                 </a>
             </div>
@@ -162,7 +162,7 @@
 
             <!-- Admin Login Link -->
             <div class="admin-link-container">
-                <a href="#" class="admin-link" onclick="showAdminLogin(); return false;">
+                <a href="#" class="admin-link" onclick="showPageDirectly('admin', null); return false;">
                     <i class="fas fa-user-shield"></i> Admin Login
                 </a>
             </div>
@@ -200,20 +200,20 @@
                     </div>
                     <div class="admin-actions">
                         <span class="admin-user"><i class="fas fa-user-circle"></i> Admin</span>
-                        <button class="btn btn-danger" onclick="adminLogout()">
+                        <button class="btn btn-danger" onclick="logoutDirectly()">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </button>
                     </div>
                 </div>
 
                 <div class="admin-tabs">
-                    <button class="admin-tab active" onclick="showAdminTab('buses', event)">
+                    <button class="admin-tab active" onclick="showAdminTabDirectly('buses', this)">
                         <i class="fas fa-bus"></i> Manage Buses
                     </button>
-                    <button class="admin-tab" onclick="showAdminTab('routes', event)">
+                    <button class="admin-tab" onclick="showAdminTabDirectly('routes', this)">
                         <i class="fas fa-route"></i> Manage Routes
                     </button>
-                    <button class="admin-tab" onclick="showAdminTab('stops', event)">
+                    <button class="admin-tab" onclick="showAdminTabDirectly('stops', this)">
                         <i class="fas fa-map-marker-alt"></i> Manage Stops
                     </button>
                 </div>
@@ -221,7 +221,7 @@
                 <!-- Manage Buses -->
                 <div id="busesTab" class="admin-content active">
                     <h3><i class="fas fa-plus-circle"></i> Add New Bus</h3>
-                    <form class="admin-form" onsubmit="addBus(event)">
+                    <form class="admin-form" onsubmit="addBusDirectly(event); return false;">
                         <div class="form-group">
                             <label><i class="fas fa-id-card"></i> Bus Number</label>
                             <input type="text" id="busNumber" required placeholder="Enter bus number">
@@ -293,7 +293,7 @@
                 <!-- Manage Routes -->
                 <div id="routesTab" class="admin-content">
                     <h3><i class="fas fa-plus-circle"></i> Add New Route</h3>
-                    <form class="admin-form" onsubmit="addRoute(event)">
+                    <form class="admin-form" onsubmit="addRouteDirectly(event); return false;">
                         <div class="form-group">
                             <label><i class="fas fa-tag"></i> Route Name</label>
                             <input type="text" id="routeName" required placeholder="Enter route name">
@@ -343,7 +343,7 @@
                 <!-- Manage Stops -->
                 <div id="stopsTab" class="admin-content">
                     <h3><i class="fas fa-plus-circle"></i> Add New Stop</h3>
-                    <form class="admin-form" onsubmit="addStop(event)">
+                    <form class="admin-form" onsubmit="addStopDirectly(event); return false;">
                         <div class="form-group">
                             <label><i class="fas fa-map-pin"></i> Stop Name</label>
                             <input type="text" id="stopName" required placeholder="Enter stop name">
@@ -651,6 +651,323 @@
                 return `${hour}:${minutes} ${ampm}`;
             }
         }
+        
+        // Direct logout function
+        function logoutDirectly() {
+            console.log("Direct logout function called");
+            
+            // Hide admin panel and show login form
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('adminLogin').classList.remove('hidden');
+            
+            // Clear admin form fields
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            // Clear any status message
+            const statusElement = document.getElementById('loginStatus');
+            if (statusElement) {
+                statusElement.textContent = "";
+                statusElement.className = "login-status";
+            }
+            
+            // Switch headers and return to home page
+            document.getElementById('mainHeader').style.display = 'block';
+            document.getElementById('adminHeader').style.display = 'none';
+            
+            // Return to home page
+            showPageDirectly('home', document.querySelector('.nav-link'));
+        }
+        
+        // Direct showAdminTab function
+        function showAdminTabDirectly(tabName, element) {
+            console.log("Showing admin tab:", tabName);
+            
+            // Hide all admin content
+            document.querySelectorAll('.admin-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Update active tab button
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+        
+        // Direct showPage function
+        function showPageDirectly(pageId, navElement) {
+            console.log("Direct showPage function called for page:", pageId);
+            
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show the selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Update active nav link if provided
+            if (navElement) {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                navElement.classList.add('active');
+            }
+            
+            // Special handling for admin page
+            if (pageId === 'admin') {
+                document.getElementById('adminHeader').style.display = 'block';
+                document.getElementById('mainHeader').style.display = 'none';
+            } else {
+                document.getElementById('adminHeader').style.display = 'none';
+                document.getElementById('mainHeader').style.display = 'block';
+            }
+        }
+        
+        // Direct add bus function
+        function addBusDirectly(event) {
+            event.preventDefault();
+            console.log("Direct addBus function called");
+            
+            const busNumber = document.getElementById('busNumber').value;
+            const busRoute = document.getElementById('busRoute').value;
+            
+            // Get time values
+            const departureHour = document.getElementById('departureHour').value;
+            const departureMinute = document.getElementById('departureMinute').value;
+            const departureAmPm = document.getElementById('departureAmPm').value;
+            
+            const arrivalHour = document.getElementById('arrivalHour').value;
+            const arrivalMinute = document.getElementById('arrivalMinute').value;
+            const arrivalAmPm = document.getElementById('arrivalAmPm').value;
+            
+            // Convert to 24-hour format
+            const departureTime = convertTo24Hour(departureHour, departureMinute, departureAmPm);
+            const arrivalTime = convertTo24Hour(arrivalHour, arrivalMinute, arrivalAmPm);
+            
+            if (!busNumber || !busRoute) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            // Create bus object
+            const newBus = {
+                id: Date.now(), // Use timestamp as ID
+                name: busNumber,
+                number: busNumber,
+                route: busRoute,
+                departure: departureTime,
+                arrival: arrivalTime,
+                status: 'active'
+            };
+            
+            // Try to use Firebase if available
+            if (typeof window.saveBusData === 'function') {
+                window.saveBusData(newBus)
+                    .then(() => {
+                        resetBusForm();
+                        alert('Bus added successfully!');
+                    })
+                    .catch(error => {
+                        console.error("Error adding bus:", error);
+                        alert('Failed to add bus. Please try again.');
+                    });
+            } else {
+                // Fallback to local storage
+                if (!window.busData) window.busData = [];
+                window.busData.push(newBus);
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('busData', JSON.stringify(window.busData));
+                    resetBusForm();
+                    alert('Bus added successfully!');
+                    loadAdminDataDirectly(); // Refresh the table
+                } catch (error) {
+                    console.error("Error saving to localStorage:", error);
+                    alert('Failed to save bus data.');
+                }
+            }
+        }
+        
+        // Direct add route function
+        function addRouteDirectly(event) {
+            event.preventDefault();
+            console.log("Direct addRoute function called");
+            
+            const routeName = document.getElementById('routeName').value;
+            const routeOrigin = document.getElementById('routeOrigin').value;
+            const routeDestination = document.getElementById('routeDestination').value;
+            const routeDistance = parseInt(document.getElementById('routeDistance').value);
+            
+            if (!routeName || !routeOrigin || !routeDestination || isNaN(routeDistance)) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            // Create route object
+            const newRoute = {
+                id: Date.now(), // Use timestamp as ID
+                name: routeName.toLowerCase().replace(/\s+/g, '-'),
+                origin: routeOrigin,
+                destination: routeDestination,
+                distance: routeDistance
+            };
+            
+            // Try to use Firebase if available
+            if (typeof window.saveRouteData === 'function') {
+                window.saveRouteData(newRoute)
+                    .then(() => {
+                        resetRouteForm();
+                        alert('Route added successfully!');
+                    })
+                    .catch(error => {
+                        console.error("Error adding route:", error);
+                        alert('Failed to add route. Please try again.');
+                    });
+            } else {
+                // Fallback to local storage
+                if (!window.routes) window.routes = [];
+                window.routes.push(newRoute);
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('routes', JSON.stringify(window.routes));
+                    resetRouteForm();
+                    alert('Route added successfully!');
+                    loadAdminDataDirectly(); // Refresh the table
+                } catch (error) {
+                    console.error("Error saving to localStorage:", error);
+                    alert('Failed to save route data.');
+                }
+            }
+        }
+        
+        // Direct add stop function
+        function addStopDirectly(event) {
+            event.preventDefault();
+            console.log("Direct addStop function called");
+            
+            const stopRoute = document.getElementById('stopRoute').value;
+            const stopName = document.getElementById('stopName').value;
+            
+            // Time inputs
+            const arrivalHour = document.getElementById('stopArrivalHour').value;
+            const arrivalMinute = document.getElementById('stopArrivalMinute').value;
+            const arrivalAmPm = document.getElementById('stopArrivalAmPm').value;
+            
+            const departureHour = document.getElementById('stopDepartureHour').value;
+            const departureMinute = document.getElementById('stopDepartureMinute').value;
+            const departureAmPm = document.getElementById('stopDepartureAmPm').value;
+            
+            if (!stopRoute || !stopName) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            // Convert times to 24-hour format
+            const arrivalTime = convertTo24Hour(arrivalHour, arrivalMinute, arrivalAmPm);
+            const departureTime = convertTo24Hour(departureHour, departureMinute, departureAmPm);
+            
+            // Create stop object
+            const newStop = {
+                id: Date.now(), // Use timestamp as ID
+                route: stopRoute,
+                name: stopName,
+                arrival: arrivalTime,
+                departure: departureTime
+            };
+            
+            // Try to use Firebase if available
+            if (typeof window.saveStopData === 'function') {
+                window.saveStopData(newStop)
+                    .then(() => {
+                        resetStopForm();
+                        alert('Stop added successfully!');
+                    })
+                    .catch(error => {
+                        console.error("Error adding stop:", error);
+                        alert('Failed to add stop. Please try again.');
+                    });
+            } else {
+                // Fallback to local storage
+                if (!window.stops) window.stops = [];
+                window.stops.push(newStop);
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('stops', JSON.stringify(window.stops));
+                    resetStopForm();
+                    alert('Stop added successfully!');
+                    loadAdminDataDirectly(); // Refresh the table
+                } catch (error) {
+                    console.error("Error saving to localStorage:", error);
+                    alert('Failed to save stop data.');
+                }
+            }
+        }
+        
+        // Helper functions
+        function convertTo24Hour(hour, minute, ampm) {
+            hour = parseInt(hour);
+            minute = parseInt(minute);
+            
+            if (ampm === 'PM' && hour < 12) {
+                hour += 12;
+            }
+            if (ampm === 'AM' && hour === 12) {
+                hour = 0;
+            }
+            
+            // Format with leading zeros
+            const formattedHour = hour.toString().padStart(2, '0');
+            const formattedMinute = minute.toString().padStart(2, '0');
+            
+            return `${formattedHour}:${formattedMinute}`;
+        }
+        
+        function resetBusForm() {
+            document.getElementById('busNumber').value = '';
+            document.getElementById('busRoute').selectedIndex = 0;
+            document.getElementById('departureHour').value = '9';
+            document.getElementById('departureMinute').value = '00';
+            document.getElementById('departureAmPm').value = 'AM';
+            document.getElementById('arrivalHour').value = '5';
+            document.getElementById('arrivalMinute').value = '00';
+            document.getElementById('arrivalAmPm').value = 'PM';
+        }
+        
+        function resetRouteForm() {
+            document.getElementById('routeName').value = '';
+            document.getElementById('routeOrigin').value = '';
+            document.getElementById('routeDestination').value = '';
+            document.getElementById('routeDistance').value = '';
+        }
+        
+        function resetStopForm() {
+            document.getElementById('stopName').value = '';
+            document.getElementById('stopRoute').selectedIndex = 0;
+            document.getElementById('stopArrivalHour').value = '10';
+            document.getElementById('stopArrivalMinute').value = '30';
+            document.getElementById('stopArrivalAmPm').value = 'AM';
+            document.getElementById('stopDepartureHour').value = '10';
+            document.getElementById('stopDepartureMinute').value = '45';
+            document.getElementById('stopDepartureAmPm').value = 'AM';
+        }
+        
+        // Make functions available to the window object
+        window.loginDirectly = loginDirectly;
+        window.loadAdminDataDirectly = loadAdminDataDirectly;
+        window.logoutDirectly = logoutDirectly;
+        window.showAdminTabDirectly = showAdminTabDirectly;
+        window.showPageDirectly = showPageDirectly;
+        window.addBusDirectly = addBusDirectly;
+        window.addRouteDirectly = addRouteDirectly;
+        window.addStopDirectly = addStopDirectly;
     </script>
 </body>
 </html>
