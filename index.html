@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Is My Bus - India</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="mainHeader">
+        <nav class="nav container">
+            <div class="logo">
+                <i class="fas fa-bus"></i>
+                Where Is My Bus
+            </div>
+            <div class="current-time-container">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime">00:00:00 AM</span>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <a href="#" class="nav-link active" onclick="showPage('home', this); return false;">Home</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Admin Header (Simplified) -->
+    <header class="header admin-header" id="adminHeader" style="display: none;">
+        <nav class="nav container">
+            <div class="logo">
+                <i class="fas fa-bus"></i>
+                Where Is My Bus - Admin
+            </div>
+            <div class="back-to-home">
+                <a href="#" onclick="showPage('home', document.querySelector('.nav-link')); return false;">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content container">
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <!-- Hero Section with Animated Background -->
+            <section class="hero">
+                <div class="hero-content">
+                    <h1>Find Your Bus in India</h1>
+                    <p>Track buses across India with real-time schedule information</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalBuses">0</span>
+                            <span class="stat-label">Buses</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalRoutes">0</span>
+                            <span class="stat-label">Routes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalStops">0</span>
+                            <span class="stat-label">Stops</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="animated-bus">
+                    <i class="fas fa-bus"></i>
+                </div>
+                <div class="hero-particles"></div>
+            </section>
+
+            <!-- Search Section with Tabs -->
+            <section class="search-section">
+                <div class="search-tabs">
+                    <button class="search-tab active" data-tab="route-search">
+                        <i class="fas fa-route"></i> Search by Route
+                    </button>
+                    <button class="search-tab" data-tab="stop-search">
+                        <i class="fas fa-map-marker-alt"></i> Search by Stop
+                    </button>
+                </div>
+                
+                <div class="search-content">
+                    <!-- Route Search Form -->
+                    <div class="search-panel active" id="route-search">
+                        <form class="search-form" onsubmit="searchBuses(event)">
+                            <div class="form-group">
+                                <label for="from"><i class="fas fa-map-marker"></i> From</label>
+                                <input list="fromOptions" id="from" placeholder="Type or select origin" required>
+                                <datalist id="fromOptions">
+                                    <!-- Options will be populated dynamically -->
+                                </datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="to"><i class="fas fa-map-marker-alt"></i> To</label>
+                                <input list="toOptions" id="to" placeholder="Type or select destination" required>
+                                <datalist id="toOptions">
+                                    <!-- Options will be populated dynamically -->
+                                </datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="date"><i class="fas fa-calendar-alt"></i> Travel Date</label>
+                                <input type="date" id="date" required>
+                            </div>
+                            <button type="submit" class="search-btn">
+                                <i class="fas fa-search"></i>
+                                Search Buses
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Stoppage Search Form -->
+                    <div class="search-panel" id="stop-search">
+                        <form class="search-form" onsubmit="searchByStoppage(event)">
+                            <div class="form-group" style="flex-grow: 2;">
+                                <label for="stoppage"><i class="fas fa-map-pin"></i> Search by Stoppage</label>
+                                <div class="custom-dropdown-container">
+                                    <input type="text" id="stoppage" placeholder="Type to search for stops" required>
+                                    <div id="stoppageDropdown" class="custom-dropdown"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="stopDate"><i class="fas fa-calendar-alt"></i> Travel Date</label>
+                                <input type="date" id="stopDate" required>
+                            </div>
+                            <button type="submit" class="search-btn">
+                                <i class="fas fa-search"></i>
+                                Find Buses
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Popular Routes Section -->
+            <section class="popular-routes-section">
+                <h2><i class="fas fa-star"></i> Popular Routes</h2>
+                <div class="popular-routes-container" id="popularRoutes">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </section>
+
+            <!-- Bus Results with Animation -->
+            <section id="busResults" class="bus-results hidden">
+                <div class="results-header">
+                    <h2><i class="fas fa-bus"></i> Available Buses</h2>
+                    <div class="results-filter">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" onchange="sortBusResults(this.value)">
+                            <option value="departure">Departure Time</option>
+                            <option value="arrival">Arrival Time</option>
+                            <option value="duration">Duration</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="busContainer" class="bus-container"></div>
+            </section>
+
+            <!-- Admin Login Link -->
+            <div class="admin-link-container">
+                <a href="#" class="admin-link" onclick="showAdminLogin(); return false;">
+                    <i class="fas fa-user-shield"></i> Admin Login
+                </a>
+            </div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="admin" class="page">
+            <div id="adminLogin" class="login-form">
+                <h2><i class="fas fa-user-shield"></i> Admin Login</h2>
+                <form onsubmit="adminLogin(event)">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="username" required placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="password" required placeholder="Enter password">
+                    </div>
+                    <button type="submit" class="btn login-btn" style="width: 100%;">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+                <p class="login-hint">
+                    <i class="fas fa-info-circle"></i> Default: admin / admin123
+                </p>
+            </div>
+
+            <div id="adminPanel" class="admin-panel hidden">
+                <div class="admin-header">
+                    <div class="admin-title">
+                        <h2>Admin Dashboard</h2>
+                        <p class="admin-subtitle">Manage bus routes and schedules</p>
+                    </div>
+                    <div class="admin-actions">
+                        <span class="admin-user"><i class="fas fa-user-circle"></i> Admin</span>
+                        <button class="btn btn-danger" onclick="adminLogout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="showAdminTab('buses', event)">
+                        <i class="fas fa-bus"></i> Manage Buses
+                    </button>
+                    <button class="admin-tab" onclick="showAdminTab('routes', event)">
+                        <i class="fas fa-route"></i> Manage Routes
+                    </button>
+                    <button class="admin-tab" onclick="showAdminTab('stops', event)">
+                        <i class="fas fa-map-marker-alt"></i> Manage Stops
+                    </button>
+                </div>
+
+                <!-- Manage Buses -->
+                <div id="busesTab" class="admin-content active">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Bus</h3>
+                    <form class="admin-form" onsubmit="addBus(event)">
+                        <div class="form-group">
+                            <label><i class="fas fa-id-card"></i> Bus Number</label>
+                            <input type="text" id="busNumber" required placeholder="Enter bus number">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-route"></i> Route</label>
+                            <select id="busRoute" required>
+                                <option value="">Select Route</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-hourglass-start"></i> Departure Time</label>
+                            <div class="time-input-container">
+                                <input type="number" id="departureHour" min="1" max="12" placeholder="HH" required>
+                                <span>:</span>
+                                <input type="number" id="departureMinute" min="0" max="59" placeholder="MM" required>
+                                <select id="departureAmPm">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="departureTime">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-hourglass-end"></i> Arrival Time</label>
+                            <div class="time-input-container">
+                                <input type="number" id="arrivalHour" min="1" max="12" placeholder="HH" required>
+                                <span>:</span>
+                                <input type="number" id="arrivalMinute" min="0" max="59" placeholder="MM" required>
+                                <select id="arrivalAmPm">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="arrivalTime">
+                        </div>
+                        <div class="form-group form-submit">
+                            <button type="submit" class="btn"><i class="fas fa-plus"></i> Add Bus</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h4><i class="fas fa-list"></i> Buses List</h4>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <input type="text" id="busSearch" placeholder="Search buses...">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Bus Number</th>
+                                    <th>Route</th>
+                                    <th>Departure</th>
+                                    <th>Arrival</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="busTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Manage Routes -->
+                <div id="routesTab" class="admin-content">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Route</h3>
+                    <form class="admin-form" onsubmit="addRoute(event)">
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Route Name</label>
+                            <input type="text" id="routeName" required placeholder="Enter route name">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker"></i> Origin</label>
+                            <input type="text" id="routeOrigin" required placeholder="Starting point">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Destination</label>
+                            <input type="text" id="routeDestination" required placeholder="End point">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-ruler"></i> Distance (km)</label>
+                            <input type="number" id="routeDistance" required placeholder="Enter distance">
+                        </div>
+                        <div class="form-group form-submit">
+                            <button type="submit" class="btn"><i class="fas fa-plus"></i> Add Route</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h4><i class="fas fa-list"></i> Routes List</h4>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <input type="text" id="routeSearch" placeholder="Search routes...">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Route Name</th>
+                                    <th>Origin</th>
+                                    <th>Destination</th>
+                                    <th>Distance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="routeTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Manage Stops -->
+                <div id="stopsTab" class="admin-content">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Stop</h3>
+                    <form class="admin-form" onsubmit="addStop(event)">
+                        <div class="form-group">
+                            <label><i class="fas fa-map-pin"></i> Stop Name</label>
+                            <input type="text" id="stopName" required placeholder="Enter stop name">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-route"></i> Route</label>
+                            <select id="stopRoute" required>
+                                <option value="">Select Route</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-hourglass-start"></i> Arrival Time</label>
+                            <div class="time-input-container">
+                                <input type="number" id="stopArrivalHour" min="1" max="12" placeholder="HH" required>
+                                <span>:</span>
+                                <input type="number" id="stopArrivalMinute" min="0" max="59" placeholder="MM" required>
+                                <select id="stopArrivalAmPm">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="stopArrival">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-hourglass-end"></i> Departure Time</label>
+                            <div class="time-input-container">
+                                <input type="number" id="stopDepartureHour" min="1" max="12" placeholder="HH" required>
+                                <span>:</span>
+                                <input type="number" id="stopDepartureMinute" min="0" max="59" placeholder="MM" required>
+                                <select id="stopDepartureAmPm">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="stopDeparture">
+                        </div>
+                        <div class="form-group form-submit">
+                            <button type="submit" class="btn"><i class="fas fa-plus"></i> Add Stop</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h4><i class="fas fa-list"></i> Stops List</h4>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <input type="text" id="stopSearch" placeholder="Search stops...">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Stop Name</th>
+                                    <th>Route</th>
+                                    <th>Arrival</th>
+                                    <th>Departure</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stopTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="schedule-modal" onclick="closeModal(event)">
+        <div class="schedule-content">
+            <div class="schedule-header">
+                <h3 id="modalBusNumber"></h3>
+                <button class="close-btn" onclick="closeScheduleModal()">&times;</button>
+            </div>
+            <div id="scheduleTimeline" class="schedule-timeline"></div>
+        </div>
+    </div>
+
+    <!-- Edit Bus Modal -->
+    <div id="editBusModal" class="schedule-modal">
+        <div class="schedule-content" style="max-width: 900px;">
+            <div class="schedule-header">
+                <h3>Edit Bus</h3>
+                <button class="close-btn" onclick="closeEditBusModal()">&times;</button>
+            </div>
+            <form id="editBusForm" onsubmit="updateBus(event); return false;">
+                <input type="hidden" id="editBusId">
+                <div class="admin-form" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Bus Number</label>
+                        <input type="text" id="editBusNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Route (Cannot be changed)</label>
+                        <input type="text" id="editBusRouteDisplay" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                        <input type="hidden" id="editBusRoute">
+                    </div>
+                    <div class="form-group">
+                        <label>Departure Time</label>
+                        <div class="time-input-container">
+                            <input type="number" id="editDepartureHour" min="1" max="12" placeholder="HH" required>
+                            <span>:</span>
+                            <input type="number" id="editDepartureMinute" min="0" max="59" placeholder="MM" required>
+                            <select id="editDepartureAmPm">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="editDepartureTime">
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival Time</label>
+                        <div class="time-input-container">
+                            <input type="number" id="editArrivalHour" min="1" max="12" placeholder="HH" required>
+                            <span>:</span>
+                            <input type="number" id="editArrivalMinute" min="0" max="59" placeholder="MM" required>
+                            <select id="editArrivalAmPm">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="editArrivalTime">
+                    </div>
+                </div>
+
+                <h4>Bus Stops</h4>
+                <div id="editStopsContainer" style="margin-bottom: 1rem; max-height: 300px; overflow-y: auto;">
+                    <!-- Stops will be populated dynamically -->
+                </div>
+
+                <div style="text-align: right;">
+                    <button type="button" class="btn" onclick="addStopRow()" style="background: #4CAF50; margin-right: 0.5rem;">
+                        <i class="fas fa-plus"></i> Add Stop
+                    </button>
+                    <button type="button" class="btn" onclick="updateBus(event)">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/data.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/edit.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
