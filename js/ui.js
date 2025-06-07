@@ -449,15 +449,19 @@ function sortBusResults(sortBy) {
     if (busCards.length === 0) return;
     
     // Get current search parameters
-    const from = document.getElementById('from').value;
-    const to = document.getElementById('to').value;
+    const from = document.getElementById('from').value.toLowerCase();
+    const to = document.getElementById('to').value.toLowerCase();
     
     // Filter buses again
     let filteredBuses = busData.filter(bus => {
         if (!bus.stops || bus.stops.length < 2) return false;
         
-        const fromIndex = bus.stops.findIndex(stop => stop.name === from);
-        const toIndex = bus.stops.findIndex(stop => stop.name === to);
+        const fromIndex = bus.stops.findIndex(stop => 
+            stop.name && stop.name.toLowerCase() === from
+        );
+        const toIndex = bus.stops.findIndex(stop => 
+            stop.name && stop.name.toLowerCase() === to
+        );
         
         if (fromIndex === -1 || toIndex === -1) return false;
         return fromIndex < toIndex;
@@ -526,7 +530,9 @@ function viewBusDetails(busId) {
         // Calculate the progress percentage based on current stop
         let progressPercent = 0;
         if (bus.stops && bus.stops.length > 0 && bus.currentStop) {
-            const currentStopIndex = bus.stops.findIndex(stop => stop.name === bus.currentStop);
+            const currentStopIndex = bus.stops.findIndex(stop => 
+                stop.name && stop.name.toLowerCase() === bus.currentStop.toLowerCase()
+            );
             if (currentStopIndex !== -1) {
                 progressPercent = ((currentStopIndex + 1) / bus.stops.length) * 100;
             }
@@ -595,9 +601,10 @@ function viewBusDetails(busId) {
                     <h3>Stops Timeline</h3>
                     <div class="timeline">
                         ${stops.length > 0 ? stops.map((stop, index) => {
-                            const isCurrent = stop.name === bus.currentStop;
+                            const isCurrent = stop.name && bus.currentStop && 
+                                stop.name.toLowerCase() === bus.currentStop.toLowerCase();
                             const isPast = bus.currentStop && 
-                                stops.findIndex(s => s.name === bus.currentStop) > index;
+                                stops.findIndex(s => s.name && s.name.toLowerCase() === bus.currentStop.toLowerCase()) > index;
                             
                             let statusClass = '';
                             if (isCurrent) statusClass = 'current';

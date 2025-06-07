@@ -288,8 +288,8 @@ function searchBuses(event) {
     // Make sure current stops are up to date
     updateCurrentStopsBasedOnTime();
     
-    const from = document.getElementById('from').value;
-    const to = document.getElementById('to').value;
+    const from = document.getElementById('from').value.toLowerCase();
+    const to = document.getElementById('to').value.toLowerCase();
     const date = document.getElementById('date').value;
     
     console.log(`Searching for buses from ${from} to ${to}`);
@@ -302,8 +302,12 @@ function searchBuses(event) {
         }
         
         // Check if both stops exist in this bus's route
-        const fromIndex = bus.stops.findIndex(stop => stop.name === from);
-        const toIndex = bus.stops.findIndex(stop => stop.name === to);
+        const fromIndex = bus.stops.findIndex(stop => 
+            stop.name && stop.name.toLowerCase() === from
+        );
+        const toIndex = bus.stops.findIndex(stop => 
+            stop.name && stop.name.toLowerCase() === to
+        );
         
         console.log(`Bus ${bus.id}: fromIndex=${fromIndex}, toIndex=${toIndex}`);
         
@@ -326,7 +330,7 @@ function searchByStoppage(event) {
     // Make sure current stops are up to date
     updateCurrentStopsBasedOnTime();
     
-    const stoppage = document.getElementById('stoppage').value;
+    const stoppage = document.getElementById('stoppage').value.toLowerCase();
     const date = document.getElementById('stopDate').value;
     
     console.log(`Searching for buses passing through ${stoppage}`);
@@ -339,7 +343,9 @@ function searchByStoppage(event) {
         }
         
         // Check if the stoppage exists in this bus's route
-        const hasStop = bus.stops.some(stop => stop.name === stoppage);
+        const hasStop = bus.stops.some(stop => 
+            stop.name && stop.name.toLowerCase() === stoppage
+        );
         console.log(`Bus ${bus.id} has stop ${stoppage}: ${hasStop}`);
         return hasStop;
     });
