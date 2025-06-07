@@ -1,10 +1,91 @@
 // Main.js - Entry point for the application
 import { loadAllData, setupRealtimeUpdates, updateCurrentStopsBasedOnTime, busData } from './data.js';
-import { adminLogin, adminLogout, updateRouteSelects, loadAdminData } from './admin.js';
+import { adminLogin as adminLoginModule, adminLogout, updateRouteSelects, loadAdminData } from './admin.js';
 import { updateSearchOptions, handleStoppageInput, searchBuses, searchByStoppage } from './search.js';
 import { showPage, updateCurrentTimeDisplay, displayBuses, closeScheduleModal, closeEditBusModal, updateStats, populatePopularRoutes } from './ui.js';
 import { auth } from './firebase-config.js';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+
+// Define a direct implementation of adminLogin to ensure it works
+function adminLogin(event) {
+    if (event) event.preventDefault();
+    
+    console.log("Direct admin login function called");
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    console.log("Login attempt with:", username, password);
+    
+    // First try Firebase authentication if proper email format
+    if (username.includes('@')) {
+        // Show loading indicator
+        document.getElementById('loginButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+        document.getElementById('loginButton').disabled = true;
+        
+        // Attempt Firebase login
+        signInWithEmailAndPassword(auth, username, password)
+            .then((userCredential) => {
+                console.log("Firebase login successful", userCredential.user);
+                // Show success message
+                const statusElement = document.getElementById('loginStatus');
+                statusElement.textContent = "Login successful!";
+                statusElement.className = "login-status success";
+                
+                // Complete login process
+                completeLogin();
+            })
+            .catch((error) => {
+                console.error("Firebase login error:", error.code, error.message);
+                
+                // Show error message
+                const statusElement = document.getElementById('loginStatus');
+                statusElement.textContent = "Login failed: " + error.message;
+                statusElement.className = "login-status error";
+                
+                // Reset button
+                document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                document.getElementById('loginButton').disabled = false;
+            });
+    } 
+    // Fallback to demo authentication
+    else if (username === 'admin' && password === 'admin123') {
+        console.log("Demo login successful");
+        
+        // Show success message
+        const statusElement = document.getElementById('loginStatus');
+        statusElement.textContent = "Demo login successful!";
+        statusElement.className = "login-status success";
+        
+        // Complete login process
+        completeLogin();
+    } else {
+        // Show error message
+        console.log("Demo login failed");
+        const statusElement = document.getElementById('loginStatus');
+        statusElement.textContent = "Invalid username or password.";
+        statusElement.className = "login-status error";
+    }
+}
+
+// Function to complete the login process
+function completeLogin() {
+    // Hide login form and show admin panel
+    document.getElementById('adminLogin').classList.add('hidden');
+    document.getElementById('adminPanel').classList.remove('hidden');
+    
+    // Keep admin header visible
+    document.getElementById('adminHeader').style.display = 'block';
+    document.getElementById('mainHeader').style.display = 'none';
+    
+    // Load admin data
+    updateRouteSelects();
+    loadAdminData();
+    
+    // Reset button state
+    document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+    document.getElementById('loginButton').disabled = false;
+}
 
 // Make functions globally available for HTML event handlers
 window.adminLogin = adminLogin;
@@ -41,6 +122,16 @@ window.updateSearchOptions = updateSearchOptions;
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("Initializing application...");
+    
+    // Ensure the admin functions are properly exposed globally
+    if (typeof window.adminLogin !== 'function') {
+        console.error("adminLogin is not a function, re-assigning it");
+        window.adminLogin = adminLogin;
+    }
+    if (typeof window.adminLogout !== 'function') {
+        console.error("adminLogout is not a function, re-assigning it");
+        window.adminLogout = adminLogout;
+    }
     
     try {
         // Load data from Firebase
