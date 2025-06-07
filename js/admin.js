@@ -12,6 +12,8 @@ import {
 } from './data.js';
 
 import { updateSearchOptions } from './search.js';
+import { auth } from './firebase-config.js';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 // Admin functionality
 function adminLogin(event) {
@@ -24,35 +26,99 @@ function adminLogin(event) {
     
     console.log("Login attempt with:", username, password);
     
-    // Simple authentication (in a real app, this would be server-side)
-    if (username === 'admin' && password === 'admin123') {
-        console.log("Login successful");
+    // First try Firebase authentication if proper email format
+    if (username.includes('@')) {
+        // Show loading indicator
+        document.getElementById('loginButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+        document.getElementById('loginButton').disabled = true;
         
-        // Hide login form and show admin panel
-        document.getElementById('adminLogin').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
+        // Attempt Firebase login
+        signInWithEmailAndPassword(auth, username, password)
+            .then((userCredential) => {
+                console.log("Firebase login successful", userCredential.user);
+                // Show success message
+                const statusElement = document.getElementById('loginStatus');
+                statusElement.textContent = "Login successful!";
+                statusElement.className = "login-status success";
+                
+                // Complete login process
+                completeLogin();
+            })
+            .catch((error) => {
+                console.error("Firebase login error:", error.code, error.message);
+                
+                // Show error message
+                const statusElement = document.getElementById('loginStatus');
+                statusElement.textContent = "Login failed: " + error.message;
+                statusElement.className = "login-status error";
+                
+                // Reset button
+                document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                document.getElementById('loginButton').disabled = false;
+            });
+    } 
+    // Fallback to demo authentication
+    else if (username === 'admin' && password === 'admin123') {
+        console.log("Demo login successful");
         
-        // Keep admin header visible
-        document.getElementById('adminHeader').style.display = 'block';
-        document.getElementById('mainHeader').style.display = 'none';
+        // Show success message
+        const statusElement = document.getElementById('loginStatus');
+        statusElement.textContent = "Demo login successful!";
+        statusElement.className = "login-status success";
         
-        // Load admin data
-        updateRouteSelects();
-        loadAdminData();
+        // Complete login process
+        completeLogin();
     } else {
         // Show error message
-        console.log("Login failed");
-        alert('Invalid username or password. Please try again.');
+        console.log("Demo login failed");
+        const statusElement = document.getElementById('loginStatus');
+        statusElement.textContent = "Invalid username or password.";
+        statusElement.className = "login-status error";
     }
 }
 
+// Function to complete the login process (common for both auth methods)
+function completeLogin() {
+    // Hide login form and show admin panel
+    document.getElementById('adminLogin').classList.add('hidden');
+    document.getElementById('adminPanel').classList.remove('hidden');
+    
+    // Keep admin header visible
+    document.getElementById('adminHeader').style.display = 'block';
+    document.getElementById('mainHeader').style.display = 'none';
+    
+    // Load admin data
+    updateRouteSelects();
+    loadAdminData();
+    
+    // Reset button state
+    document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+    document.getElementById('loginButton').disabled = false;
+}
+
 function adminLogout() {
+    // If logged in with Firebase, sign out
+    if (auth.currentUser) {
+        signOut(auth).then(() => {
+            console.log("Firebase sign out successful");
+        }).catch((error) => {
+            console.error("Firebase sign out error:", error);
+        });
+    }
+    
     document.getElementById('adminPanel').classList.add('hidden');
     document.getElementById('adminLogin').classList.remove('hidden');
     
     // Clear admin form fields
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
+    
+    // Clear any status message
+    const statusElement = document.getElementById('loginStatus');
+    if (statusElement) {
+        statusElement.textContent = "";
+        statusElement.className = "login-status";
+    }
     
     // Switch headers and return to home page
     document.getElementById('mainHeader').style.display = 'block';

@@ -3,6 +3,8 @@ import { loadAllData, setupRealtimeUpdates, updateCurrentStopsBasedOnTime, busDa
 import { adminLogin, adminLogout, updateRouteSelects, loadAdminData } from './admin.js';
 import { updateSearchOptions, handleStoppageInput, searchBuses, searchByStoppage } from './search.js';
 import { showPage, updateCurrentTimeDisplay, displayBuses, closeScheduleModal, closeEditBusModal, updateStats, populatePopularRoutes } from './ui.js';
+import { auth } from './firebase-config.js';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // Make functions globally available for HTML event handlers
 window.adminLogin = adminLogin;
@@ -47,6 +49,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Set up real-time updates
         const unsubscribe = setupRealtimeUpdates();
         
+        // Setup Firebase auth state listener
+        setupAuthStateListener();
+        
         // Log bus data for debugging
         console.log("Bus data loaded:", busData);
         console.log("Bus data types:", busData.map(bus => ({
@@ -74,6 +79,47 @@ document.addEventListener('DOMContentLoaded', async function() {
         alert("An error occurred while loading the application. Please try again later.");
     }
 });
+
+// Setup Firebase auth state listener
+function setupAuthStateListener() {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // User is signed in
+            console.log("User is signed in:", user.email);
+            
+            // Check if we're on the admin page but not logged in yet
+            const adminPage = document.getElementById('admin');
+            const adminLogin = document.getElementById('adminLogin');
+            const adminPanel = document.getElementById('adminPanel');
+            
+            if (adminPage && !adminPage.classList.contains('hidden')) {
+                if (adminLogin && !adminLogin.classList.contains('hidden')) {
+                    // Hide login form and show admin panel
+                    adminLogin.classList.add('hidden');
+                    adminPanel.classList.remove('hidden');
+                    
+                    // Keep admin header visible
+                    document.getElementById('adminHeader').style.display = 'block';
+                    document.getElementById('mainHeader').style.display = 'none';
+                    
+                    // Load admin data
+                    updateRouteSelects();
+                    loadAdminData();
+                    
+                    // Show status message
+                    const statusElement = document.getElementById('loginStatus');
+                    if (statusElement) {
+                        statusElement.textContent = "Already logged in as " + user.email;
+                        statusElement.className = "login-status success";
+                    }
+                }
+            }
+        } else {
+            // User is signed out
+            console.log("User is signed out");
+        }
+    });
+}
 
 // Initialize dynamic UI elements
 function initDynamicUI() {
