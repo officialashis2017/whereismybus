@@ -499,6 +499,20 @@
     <script type="module" src="js/ui.js"></script>
     <script type="module" src="js/main.js"></script>
     
+    <!-- Firebase functions exporter -->
+    <script type="module">
+        // Import Firebase functions
+        import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+        
+        // Make them available globally
+        window.firebaseAuthFunctions = {
+            signInWithEmailAndPassword,
+            signOut
+        };
+        
+        console.log("Firebase auth functions exported to global scope");
+    </script>
+    
     <!-- Standalone scripts (not using ES modules) -->
     <script src="js/login.js"></script>
     
@@ -553,12 +567,111 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            if (username === 'admin' && password === 'admin123') {
+            // Show loading indicator
+            document.getElementById('loginButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            document.getElementById('loginButton').disabled = true;
+            
+            // First try Firebase authentication if proper email format
+            if (username.includes('@')) {
+                console.log("Attempting Firebase login with email:", username);
+                
+                // Try to use Firebase auth if available
+                try {
+                    // Access Firebase auth directly
+                    const auth = window.firebaseAuth;
+                    if (!auth) {
+                        console.error("Firebase auth not available");
+                        fallbackToLocalAuth();
+                        return;
+                    }
+                    
+                    // Get the Firebase modules
+                    const { signInWithEmailAndPassword } = window.firebaseAuthFunctions || { 
+                        signInWithEmailAndPassword: null 
+                    };
+                    
+                    if (!signInWithEmailAndPassword) {
+                        console.error("Firebase signInWithEmailAndPassword function not available");
+                        
+                        // Try to get it from the global scope if defined there
+                        if (window.firebase && window.firebase.auth && typeof window.firebase.auth().signInWithEmailAndPassword === 'function') {
+                            window.firebase.auth().signInWithEmailAndPassword(username, password)
+                                .then(handleFirebaseLoginSuccess)
+                                .catch(handleFirebaseLoginError);
+                            return;
+                        }
+                        
+                        fallbackToLocalAuth();
+                        return;
+                    }
+                    
+                    // Attempt Firebase login
+                    signInWithEmailAndPassword(auth, username, password)
+                        .then(handleFirebaseLoginSuccess)
+                        .catch(handleFirebaseLoginError);
+                } catch (error) {
+                    console.error("Error during Firebase login attempt:", error);
+                    fallbackToLocalAuth();
+                }
+            } else {
+                // Regular admin login
+                fallbackToLocalAuth();
+            }
+            
+            // Handler for successful Firebase login
+            function handleFirebaseLoginSuccess(userCredential) {
+                console.log("Firebase login successful", userCredential.user);
                 // Show success message
                 const statusElement = document.getElementById('loginStatus');
                 statusElement.textContent = "Login successful!";
                 statusElement.className = "login-status success";
                 
+                // Complete login process
+                completeLoginProcess();
+            }
+            
+            // Handler for Firebase login errors
+            function handleFirebaseLoginError(error) {
+                console.error("Firebase login error:", error.code, error.message);
+                
+                // Show error message
+                const statusElement = document.getElementById('loginStatus');
+                statusElement.textContent = "Login failed: " + error.message;
+                statusElement.className = "login-status error";
+                
+                // Reset button
+                document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                document.getElementById('loginButton').disabled = false;
+            }
+            
+            // Fallback to local authentication
+            function fallbackToLocalAuth() {
+                console.log("Falling back to local auth with username:", username);
+                
+                if (username === 'admin' && password === 'admin123') {
+                    // Show success message
+                    const statusElement = document.getElementById('loginStatus');
+                    statusElement.textContent = "Login successful!";
+                    statusElement.className = "login-status success";
+                    
+                    // Complete login process
+                    completeLoginProcess();
+                } else {
+                    // Show error message
+                    const statusElement = document.getElementById('loginStatus');
+                    statusElement.textContent = "Invalid username or password.";
+                    statusElement.className = "login-status error";
+                    
+                    // Reset button
+                    document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                    document.getElementById('loginButton').disabled = false;
+                    
+                    console.log("Login failed - invalid credentials");
+                }
+            }
+            
+            // Common login completion process
+            function completeLoginProcess() {
                 // Hide login form and show admin panel
                 document.getElementById('adminLogin').classList.add('hidden');
                 document.getElementById('adminPanel').classList.remove('hidden');
@@ -579,12 +692,10 @@
                 if (typeof window.loadAdminData === 'function') {
                     window.loadAdminData();
                 }
-            } else {
-                // Show error message
-                const statusElement = document.getElementById('loginStatus');
-                statusElement.textContent = "Invalid username or password.";
-                statusElement.className = "login-status error";
-                console.log("Login failed - invalid credentials");
+                
+                // Reset button
+                document.getElementById('loginButton').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                document.getElementById('loginButton').disabled = false;
             }
         }
         
@@ -656,27 +767,76 @@
         function logoutDirectly() {
             console.log("Direct logout function called");
             
-            // Hide admin panel and show login form
-            document.getElementById('adminPanel').classList.add('hidden');
-            document.getElementById('adminLogin').classList.remove('hidden');
-            
-            // Clear admin form fields
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            
-            // Clear any status message
-            const statusElement = document.getElementById('loginStatus');
-            if (statusElement) {
-                statusElement.textContent = "";
-                statusElement.className = "login-status";
+            // Try to sign out from Firebase if available
+            try {
+                const auth = window.firebaseAuth;
+                const { signOut } = window.firebaseAuthFunctions || { signOut: null };
+                
+                // Check if we have Firebase auth and the current user is signed in
+                if (auth && auth.currentUser) {
+                    console.log("Firebase user detected, signing out");
+                    
+                    if (signOut) {
+                        signOut(auth)
+                            .then(() => {
+                                console.log("Firebase sign out successful");
+                                completeLogout();
+                            })
+                            .catch((error) => {
+                                console.error("Firebase sign out error:", error);
+                                // Still try to log out locally even if Firebase fails
+                                completeLogout();
+                            });
+                    } else {
+                        // Try legacy Firebase method
+                        if (window.firebase && window.firebase.auth && typeof window.firebase.auth().signOut === 'function') {
+                            window.firebase.auth().signOut()
+                                .then(() => {
+                                    console.log("Legacy Firebase sign out successful");
+                                    completeLogout();
+                                })
+                                .catch((error) => {
+                                    console.error("Legacy Firebase sign out error:", error);
+                                    completeLogout();
+                                });
+                        } else {
+                            console.warn("Firebase signOut function not available, proceeding with local logout");
+                            completeLogout();
+                        }
+                    }
+                } else {
+                    // No Firebase user, just do a local logout
+                    completeLogout();
+                }
+            } catch (error) {
+                console.error("Error during Firebase logout attempt:", error);
+                completeLogout();
             }
             
-            // Switch headers and return to home page
-            document.getElementById('mainHeader').style.display = 'block';
-            document.getElementById('adminHeader').style.display = 'none';
-            
-            // Return to home page
-            showPageDirectly('home', document.querySelector('.nav-link'));
+            // Complete the logout process
+            function completeLogout() {
+                // Hide admin panel and show login form
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('adminLogin').classList.remove('hidden');
+                
+                // Clear admin form fields
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                
+                // Clear any status message
+                const statusElement = document.getElementById('loginStatus');
+                if (statusElement) {
+                    statusElement.textContent = "";
+                    statusElement.className = "login-status";
+                }
+                
+                // Switch headers and return to home page
+                document.getElementById('mainHeader').style.display = 'block';
+                document.getElementById('adminHeader').style.display = 'none';
+                
+                // Return to home page
+                showPageDirectly('home', document.querySelector('.nav-link'));
+            }
         }
         
         // Direct showAdminTab function
