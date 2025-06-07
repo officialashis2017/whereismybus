@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Is My Bus - India</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <div class="logo">
+                <i class="fas fa-bus"></i>
+                Where Is My Bus
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" onclick="showPage('home', this); return false;">Home</a>
+                <a href="#" class="nav-link" onclick="showPage('admin', this); return false;">Admin</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content container">
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1>Find Your Bus in India</h1>
+                <p>Track buses across India with real-time schedule information</p>
+            </section>
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <form class="search-form" onsubmit="searchBuses(event)">
+                    <div class="form-group">
+                        <label for="from">From</label>
+                        <input list="fromOptions" id="from" placeholder="Type or select origin" required>
+                        <datalist id="fromOptions">
+                            <!-- Options will be populated dynamically -->
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="to">To</label>
+                        <input list="toOptions" id="to" placeholder="Type or select destination" required>
+                        <datalist id="toOptions">
+                            <!-- Options will be populated dynamically -->
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Travel Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                        Search Buses
+                    </button>
+                </form>
+
+                <!-- Add Search by Stoppage -->
+                <div style="text-align: center; margin-top: 20px; color: white;">
+                    <p>OR</p>
+                </div>
+
+                <form class="search-form" onsubmit="searchByStoppage(event)">
+                    <div class="form-group" style="flex-grow: 2;">
+                        <label for="stoppage">Search by Stoppage</label>
+                        <input list="stoppageOptions" id="stoppage" placeholder="Type or select any stop" required>
+                        <datalist id="stoppageOptions">
+                            <!-- Options will be populated dynamically -->
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="stopDate">Travel Date</label>
+                        <input type="date" id="stopDate" required>
+                    </div>
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                        Find Buses
+                    </button>
+                </form>
+            </section>
+
+            <!-- Bus Results -->
+            <section id="busResults" class="bus-results hidden">
+                <h2 style="color: white; margin-bottom: 1rem;">Available Buses</h2>
+                <div id="busContainer"></div>
+            </section>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="admin" class="page">
+            <div id="adminLogin" class="login-form">
+                <h2>Admin Login</h2>
+                <form onsubmit="adminLogin(event)">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">Login</button>
+                </form>
+                <p style="text-align: center; margin-top: 1rem; color: #666;">
+                    Default: admin / admin123
+                </p>
+            </div>
+
+            <div id="adminPanel" class="admin-panel hidden">
+                <div class="admin-header">
+                    <h2>Admin Dashboard</h2>
+                    <button class="btn btn-danger" onclick="adminLogout()">Logout</button>
+                </div>
+
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="showAdminTab('buses', event)">Manage Buses</button>
+                    <button class="admin-tab" onclick="showAdminTab('routes', event)">Manage Routes</button>
+                    <button class="admin-tab" onclick="showAdminTab('stops', event)">Manage Stops</button>
+                </div>
+
+                <!-- Manage Buses -->
+                <div id="busesTab" class="admin-content active">
+                    <h3>Add New Bus</h3>
+                    <form class="admin-form" onsubmit="addBus(event)">
+                        <div class="form-group">
+                            <label>Bus Number</label>
+                            <input type="text" id="busNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Route</label>
+                            <select id="busRoute" required>
+                                <option value="">Select Route</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Departure Time</label>
+                            <input type="time" id="departureTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Arrival Time</label>
+                            <input type="time" id="arrivalTime" required>
+                        </div>
+                        <button type="submit" class="btn">Add Bus</button>
+                    </form>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Route</th>
+                                <th>Departure</th>
+                                <th>Arrival</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="busTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Manage Routes -->
+                <div id="routesTab" class="admin-content">
+                    <h3>Add New Route</h3>
+                    <form class="admin-form" onsubmit="addRoute(event)">
+                        <div class="form-group">
+                            <label>Route Name</label>
+                            <input type="text" id="routeName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Origin</label>
+                            <input type="text" id="routeOrigin" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Destination</label>
+                            <input type="text" id="routeDestination" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Distance (km)</label>
+                            <input type="number" id="routeDistance" required>
+                        </div>
+                        <button type="submit" class="btn">Add Route</button>
+                    </form>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Route Name</th>
+                                <th>Origin</th>
+                                <th>Destination</th>
+                                <th>Distance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routeTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Manage Stops -->
+                <div id="stopsTab" class="admin-content">
+                    <h3>Add New Stop</h3>
+                    <form class="admin-form" onsubmit="addStop(event)">
+                        <div class="form-group">
+                            <label>Stop Name</label>
+                            <input type="text" id="stopName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Route</label>
+                            <select id="stopRoute" required>
+                                <option value="">Select Route</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Arrival Time</label>
+                            <input type="time" id="stopArrival" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Departure Time</label>
+                            <input type="time" id="stopDeparture" required>
+                        </div>
+                        <button type="submit" class="btn">Add Stop</button>
+                    </form>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Stop Name</th>
+                                <th>Route</th>
+                                <th>Arrival</th>
+                                <th>Departure</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stopTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="schedule-modal" onclick="closeModal(event)">
+        <div class="schedule-content">
+            <div class="schedule-header">
+                <h3 id="modalBusNumber"></h3>
+                <button class="close-btn" onclick="closeScheduleModal()">&times;</button>
+            </div>
+            <div id="scheduleTimeline" class="schedule-timeline"></div>
+        </div>
+    </div>
+
+    <!-- Edit Bus Modal -->
+    <div id="editBusModal" class="schedule-modal">
+        <div class="schedule-content" style="max-width: 900px;">
+            <div class="schedule-header">
+                <h3>Edit Bus</h3>
+                <button class="close-btn" onclick="closeEditBusModal()">&times;</button>
+            </div>
+            <form id="editBusForm" onsubmit="updateBus(event); return false;">
+                <input type="hidden" id="editBusId">
+                <div class="admin-form" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Bus Number</label>
+                        <input type="text" id="editBusNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Route (Cannot be changed)</label>
+                        <input type="text" id="editBusRouteDisplay" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                        <input type="hidden" id="editBusRoute">
+                    </div>
+                    <div class="form-group">
+                        <label>Departure Time</label>
+                        <input type="time" id="editDepartureTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival Time</label>
+                        <input type="time" id="editArrivalTime" required>
+                    </div>
+                </div>
+
+                <h4>Bus Stops</h4>
+                <div id="editStopsContainer" style="margin-bottom: 1rem; max-height: 300px; overflow-y: auto;">
+                    <!-- Stops will be populated dynamically -->
+                </div>
+
+                <div style="text-align: right;">
+                    <button type="button" class="btn" onclick="addStopRow()" style="background: #4CAF50; margin-right: 0.5rem;">
+                        <i class="fas fa-plus"></i> Add Stop
+                    </button>
+                    <button type="button" class="btn" onclick="updateBus(event)">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load JavaScript files -->
+    <script src="js/data.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/edit.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
