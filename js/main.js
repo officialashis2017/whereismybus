@@ -1,5 +1,40 @@
 // Main.js - Entry point for the application
 import { loadAllData, setupRealtimeUpdates, updateCurrentStopsBasedOnTime, busData } from './data.js';
+import { adminLogin, adminLogout, updateRouteSelects, loadAdminData } from './admin.js';
+import { updateSearchOptions, handleStoppageInput, searchBuses, searchByStoppage } from './search.js';
+import { showPage, updateCurrentTimeDisplay, displayBuses, closeScheduleModal, closeEditBusModal, updateStats, populatePopularRoutes } from './ui.js';
+
+// Make functions globally available for HTML event handlers
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;
+window.showAdminLogin = function() {
+    showPage('admin', null);
+};
+window.searchBuses = searchBuses;
+window.searchByStoppage = searchByStoppage;
+window.handleStoppageInput = handleStoppageInput;
+window.showAdminTab = function(tabName, element) {
+    // Hide all admin content
+    document.querySelectorAll('.admin-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show the selected tab
+    document.getElementById(tabName + 'Tab').classList.add('active');
+    
+    // Update active tab button
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    element.classList.add('active');
+};
+window.toggleMobileMenu = function() {
+    const navLinks = document.getElementById('navLinks');
+    navLinks.classList.toggle('active');
+};
+window.showPage = showPage;
+window.updateRouteSelects = updateRouteSelects;
+window.updateSearchOptions = updateSearchOptions;
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {

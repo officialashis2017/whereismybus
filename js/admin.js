@@ -17,11 +17,17 @@ import { updateSearchOptions } from './search.js';
 function adminLogin(event) {
     event.preventDefault();
     
+    console.log("Admin login function called");
+    
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
+    console.log("Login attempt with:", username, password);
+    
     // Simple authentication (in a real app, this would be server-side)
     if (username === 'admin' && password === 'admin123') {
+        console.log("Login successful");
+        
         // Hide login form and show admin panel
         document.getElementById('adminLogin').classList.add('hidden');
         document.getElementById('adminPanel').classList.remove('hidden');
@@ -35,6 +41,7 @@ function adminLogin(event) {
         loadAdminData();
     } else {
         // Show error message
+        console.log("Login failed");
         alert('Invalid username or password. Please try again.');
     }
 }
